@@ -5,6 +5,14 @@ interface DecodedToken {
   uid: string;
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: DecodedToken,
+    }
+  }
+}
+
 export const authMiddleware = async (
   req: Request,
   res: Response,
@@ -22,7 +30,7 @@ export const authMiddleware = async (
 
   try {
     const decodedToken: DecodedToken = await admin.auth().verifyIdToken(token);
-    (req as Request & { user: DecodedToken }).user = decodedToken;
+    req.user = decodedToken;
     return next();
   } catch (error) {
     console.error("Error verifying Firebase token:", error);
@@ -30,22 +38,4 @@ export const authMiddleware = async (
   }
 };
 
-export const requireSignIn = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const idToken = req.headers.authorization;
 
-  admin
-    .auth()
-    .verifyIdToken(idToken)
-    .then((decodedToken: DecodedToken) => {
-      (req as Request & { user: DecodedToken }).user = decodedToken;
-      next();
-    })
-    .catch((error: any) => {
-      console.log("Error verifying ID token:", error);
-      res.status(401).json({ error: "Invalid token" });
-    });
-};

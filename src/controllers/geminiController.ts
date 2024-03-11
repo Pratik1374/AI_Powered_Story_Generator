@@ -4,7 +4,6 @@ import { geminiTextModel } from "../config/geminiTextModel";
 export const getGeminiResponseForText = async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
-    console.log("hitted - ", prompt)
 
     if (!prompt) {
       return res
@@ -18,7 +17,7 @@ export const getGeminiResponseForText = async (req: Request, res: Response) => {
     const result = await geminiTextModel.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    console.log(text);
+    
 
     res.status(200).json({ success: true, data: text });
   } catch (error) {

@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import geminiRoutes from './routes/geminiRoute';
 import authRoutes from './routes/authRoute'
+import storyRoutes from './routes/storyRoute'
 import {authMiddleware} from './middlewares/authMiddleware';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use("/api/v1/auth",authRoutes);
 //   authMiddleware(req, res, next);
 // });
 
+app.use('/api/v1/story',authMiddleware, storyRoutes)
 app.use('/api/v1/response',authMiddleware, geminiRoutes);
 
 if (!process.env.PORT) {
