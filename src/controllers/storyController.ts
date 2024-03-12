@@ -3,6 +3,12 @@ const admin = require("../config/firebaseInitialization");
 
 const firestore = admin.firestore();
 
+interface AIConversation {
+  id: string;
+  prompt: string;
+  answer: string;
+}
+
 export const newStoryController = async (req: Request, res: Response) => {
   const { story_name } = req.body;
   const user_uid = req.user?.uid;
@@ -23,5 +29,68 @@ export const newStoryController = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error creating new story:", error);
     res.status(500).json({ error: "Failed to create new Story " });
+  }
+};
+
+export const getAIConversationsController = async (req: Request, res: Response) => {
+  const { story_id } = req.body;  
+  const user_uid = req.user?.uid;
+
+  if (!story_id) {
+    return res
+      .status(400)
+      .json({ error: "Story ID is missing in the request body" });
+  }
+
+  try {
+    const conversationsRef = admin
+      .firestore()
+      .collection("Users")
+      .doc(user_uid)
+      .collection("Stories")
+      .doc(story_id)
+      .collection("AI_Conversation");
+
+    const conversationsSnapshot = await conversationsRef.get();
+
+    const conversationsData: AIConversation[] = conversationsSnapshot.docs.map(
+      (doc: any) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as AIConversation)
+    );
+
+    return res.status(200).json({ conversations: conversationsData });
+  } catch (error) {
+    console.error("Error retrieving AI conversations:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const validateStoryIdController = async (req: Request, res: Response) => { 
+  try {
+    const { story_id } = req.body; 
+    const user_uid = req.user?.uid;
+    console.log("here ", story_id)
+
+    if (!story_id) {
+      return res.status(400).json({ error: 'Story ID is missing in the request parameters' });
+    }
+
+    // Reference to the user's stories collection
+    const storiesCollection = admin.firestore().collection("Users").doc(user_uid).collection("Stories");
+
+    // Check if the story with the provided ID exists
+    const storyDoc = await storiesCollection.doc(story_id).get();
+
+    if (storyDoc.exists) {
+      return res.status(200).json({ exists: true, message: 'Story exists' });
+    } else {
+      return res.status(404).json({ exists: false, message: 'Story not found' });
+    }
+  } catch (error) {
+    console.error("Error in validating story:", error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };

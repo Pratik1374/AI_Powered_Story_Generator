@@ -6,6 +6,7 @@ import geminiRoutes from './routes/geminiRoute';
 import authRoutes from './routes/authRoute'
 import storyRoutes from './routes/storyRoute'
 import {authMiddleware} from './middlewares/authMiddleware';
+import morgan from 'morgan';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ const app = express();
 // Apply middleware
 app.use(helmet());
 app.use(cors());
+app.use(morgan('dev'))
 app.use(express.json());
 
 //routes
