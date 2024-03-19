@@ -9,6 +9,20 @@ interface AIConversation {
   answer: string;
 }
 
+interface AllStories {
+  story: string,
+  created_at: string
+}
+
+const formatDate = (date: Date): string => {
+  const options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  };
+  return date.toLocaleDateString('en-GB', options);
+};
+
 export const newStoryController = async (req: Request, res: Response) => {
   const { story_name } = req.body;
   const user_uid = req.user?.uid;
@@ -32,8 +46,11 @@ export const newStoryController = async (req: Request, res: Response) => {
   }
 };
 
-export const getAIConversationsController = async (req: Request, res: Response) => {
-  const { story_id } = req.body;  
+export const getAIConversationsController = async (
+  req: Request,
+  res: Response
+) => {
+  const { story_id } = req.params;
   const user_uid = req.user?.uid;
 
   if (!story_id) {
@@ -68,29 +85,68 @@ export const getAIConversationsController = async (req: Request, res: Response) 
   }
 };
 
-export const validateStoryIdController = async (req: Request, res: Response) => { 
+export const validateStoryIdController = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const { story_id } = req.body; 
+    const { story_id } = req.body;
     const user_uid = req.user?.uid;
-    console.log("here ", story_id)
 
     if (!story_id) {
-      return res.status(400).json({ error: 'Story ID is missing in the request parameters' });
+      return res
+        .status(400)
+        .json({ error: "Story ID is missing in the request parameters" });
     }
 
     // Reference to the user's stories collection
-    const storiesCollection = admin.firestore().collection("Users").doc(user_uid).collection("Stories");
+    const storiesCollection = admin
+      .firestore()
+      .collection("Users")
+      .doc(user_uid)
+      .collection("Stories");
 
     // Check if the story with the provided ID exists
     const storyDoc = await storiesCollection.doc(story_id).get();
 
     if (storyDoc.exists) {
-      return res.status(200).json({ exists: true, message: 'Story exists' });
+      return res.status(200).json({ exists: true, message: "Story exists" });
     } else {
-      return res.status(404).json({ exists: false, message: 'Story not found' });
+      return res
+        .status(404)
+        .json({ exists: false, message: "Story not found" });
     }
   } catch (error) {
     console.error("Error in validating story:", error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getAllStoriesController = async (req: Request, res: Response) => {
+  try {
+    const user_uid = req.user?.uid;
+    
+    const storiesCollectionRef = admin
+      .firestore()
+      .collection("Users")
+      .doc(user_uid)
+      .collection("Stories");
+    
+      const storiesSnapshot = await storiesCollectionRef.get();
+      const storiesData: AllStories[] = storiesSnapshot.docs.map((doc: any) => {
+        const createdAt = doc.data().created_at.toDate();
+        const formattedDate = formatDate(createdAt);
+        return {
+          id: doc.id,
+          ...doc.data(),
+          created_at: formattedDate,
+        } as AllStories;
+      });
+  
+      return res.status(200).json({ all_stories: storiesData });
+
+  } catch (error) {
+    console.error("Error getting all stories:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
