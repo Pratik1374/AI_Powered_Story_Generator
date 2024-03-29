@@ -10,17 +10,17 @@ interface AIConversation {
 }
 
 interface AllStories {
-  story: string,
-  created_at: string
+  story: string;
+  created_at: string;
 }
 
 const formatDate = (date: Date): string => {
   const options: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
   };
-  return date.toLocaleDateString('en-GB', options);
+  return date.toLocaleDateString("en-GB", options);
 };
 
 export const newStoryController = async (req: Request, res: Response) => {
@@ -125,28 +125,89 @@ export const validateStoryIdController = async (
 export const getAllStoriesController = async (req: Request, res: Response) => {
   try {
     const user_uid = req.user?.uid;
-    
+
     const storiesCollectionRef = admin
       .firestore()
       .collection("Users")
       .doc(user_uid)
       .collection("Stories");
-    
-      const storiesSnapshot = await storiesCollectionRef.get();
-      const storiesData: AllStories[] = storiesSnapshot.docs.map((doc: any) => {
-        const createdAt = doc.data().created_at.toDate();
-        const formattedDate = formatDate(createdAt);
-        return {
-          id: doc.id,
-          ...doc.data(),
-          created_at: formattedDate,
-        } as AllStories;
-      });
-  
-      return res.status(200).json({ all_stories: storiesData });
 
+    const storiesSnapshot = await storiesCollectionRef.get();
+    const storiesData: AllStories[] = storiesSnapshot.docs.map((doc: any) => {
+      const createdAt = doc.data().created_at.toDate();
+      const formattedDate = formatDate(createdAt);
+      return {
+        id: doc.id,
+        ...doc.data(),
+        created_at: formattedDate,
+      } as AllStories;
+    });
+
+    return res.status(200).json({ all_stories: storiesData });
   } catch (error) {
     console.error("Error getting all stories:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const saveEditorContentController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const user_uid = req.user?.uid;
+    const { editor_content } = req.body;
+    const { story_id } = req.params;
+
+    if (editor_content === "") {
+      return res.status(400).json({ error: "Please provide editor content" });
+    }
+
+    console.log("editor_content: ", editor_content);
+
+    const storyDocRef = admin
+      .firestore()
+      .collection("Users")
+      .doc(user_uid)
+      .collection("Stories")
+      .doc(story_id);
+
+    await storyDocRef.set(
+      {
+        editor_content: editor_content,
+      },
+      { merge: true }
+    );
+
+    res.status(200).json({ message: "Editor content saved successfully" });
+  } catch (error) {
+    console.error("Error saving editor content:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getEditorContentController = async (req: Request, res: Response) => {
+  try {
+    const user_uid = req.user?.uid;
+    const { story_id } = req.params;
+
+    const storyDocRef = admin
+      .firestore()
+      .collection("Users")
+      .doc(user_uid)
+      .collection("Stories")
+      .doc(story_id);
+
+    const storyDoc = await storyDocRef.get();
+
+    if (!storyDoc.exists) {
+      return res.status(404).json({ error: "Story not found" });
+    }
+
+    const data = storyDoc.data();
+    res.status(200).json({ editor_content: data.editor_content });
+  } catch (error) {
+    console.error("Error getting editor content:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
