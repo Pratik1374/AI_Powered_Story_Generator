@@ -110,7 +110,8 @@ export const validateStoryIdController = async (
     const storyDoc = await storiesCollection.doc(story_id).get();
 
     if (storyDoc.exists) {
-      return res.status(200).json({ exists: true, message: "Story exists" });
+      const story_name = storyDoc.data().story_name;
+      return res.status(200).json({ exists: true, story_name});
     } else {
       return res
         .status(404)
